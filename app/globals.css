@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+  body {
+    @apply bg-canvas text-stone-800 antialiased;
+    font-feature-settings: 'tnum' 1; /* tabular numbers — হিসাবের কলাম সোজা থাকে */
+  }
+  ::selection {
+    @apply bg-leaf-200 text-leaf-900;
+  }
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+}
+
+@layer components {
+  /* the খাতা signature: red margin rule like a traditional Bengali ledger book */
+  .khata {
+    @apply relative bg-surface;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 35px,
+      rgba(11, 46, 32, 0.06) 35px,
+      rgba(11, 46, 32, 0.06) 36px
+    );
+  }
+  .khata::before {
+    content: '';
+    @apply absolute top-0 bottom-0 w-px bg-rose-400/70;
+    left: 3.25rem;
+  }
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* slim scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #b9dec9;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* print only the report/ledger area */
+@media print {
+  body {
+    background: white !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  #print-area {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    box-shadow: none !important;
+  }
+}
