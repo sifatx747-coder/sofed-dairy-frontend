@@ -364,7 +364,7 @@ export default function SalesPage() {
               {SHIFT_LABEL[shift]}ের দ্রুত বিক্রি —{' '}
               {sellerKey === 'owner' ? 'মালিক' : employees.find((e) => e._id === sellerKey)?.name}
             </CardTitle>
-            <Button onClick={saveGrid} loading={saving} className="gap-2">
+            <Button onClick={saveGrid} loading={saving} className="hidden gap-2 md:flex">
               <Save className="h-4 w-4" />
               সেভ করুন
             </Button>
@@ -376,72 +376,76 @@ export default function SalesPage() {
               </p>
             ) : (
               <>
-                <Table>
-                  <THead>
-                    <tr>
-                      <TH>দোকান/কাস্টমার</TH>
-                      {quickProducts.map((p) => (
-                        <TH key={p._id} className="w-28">
-                          {p.name} ({p.unit})
-                        </TH>
-                      ))}
-                      <TH className="text-right">মোট</TH>
-                      <TH className="w-28">নগদ (৳)</TH>
-                    </tr>
-                  </THead>
-                  <tbody>
-                    {gridCustomers.map((c) => (
-                      <TR key={c._id}>
-                        <TD>
-                          <p className="font-medium text-leaf-900">{c.name}</p>
-                          {c.due > 0 && (
-                            <p className="text-[11px] font-semibold text-rose-500">বাকি {taka(c.due)}</p>
-                          )}
-                        </TD>
-                        {quickProducts.map((p) => {
-                          const enabled = !c.quickProducts?.length || c.quickProducts.some((id) => String(id) === String(p._id));
-                          return (
-                          <TD key={p._id}>
-                            {enabled ? (
-                              <Input
-                                type="number"
-                                step="0.1"
-                                min="0"
-                                placeholder="0"
-                                value={grid[c._id]?.[p._id] ?? ''}
-                                onChange={(e) => setCell(c._id, p._id, e.target.value)}
-                                className="h-9"
-                              />
-                            ) : (
-                              <span className="block text-center text-stone-300">—</span>
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-white/90 to-transparent md:hidden" />
+                  <Table>
+                    <THead>
+                      <tr>
+                        <TH className="px-2 md:px-4 text-xs md:text-sm">দোকান</TH>
+                        {quickProducts.map((p) => (
+                          <TH key={p._id} className="w-14 px-1 text-center whitespace-normal leading-tight">
+                            <span className="block text-xs md:text-sm">{p.name}</span>
+                            <span className="block text-[10px] font-normal text-stone-400">({p.unit})</span>
+                          </TH>
+                        ))}
+                        <TH className="w-14 px-1 text-right text-xs md:text-sm">মোট</TH>
+                        <TH className="w-28 px-2 md:w-40 md:px-4 text-xs md:text-sm">নগদ জমা (৳)</TH>
+                      </tr>
+                    </THead>
+                    <tbody>
+                      {gridCustomers.map((c) => (
+                        <TR key={c._id}>
+                          <TD className="px-2 py-2 md:px-4">
+                            <p className="font-medium text-leaf-900 text-xs md:text-sm leading-tight">{c.name}</p>
+                            {c.due > 0 && (
+                              <p className="text-[10px] font-semibold text-rose-500">বাকি {taka(c.due)}</p>
                             )}
                           </TD>
-                          );
-                        })}
-                        <TD className="num text-right font-semibold text-leaf-900">{taka(rowTotal(c))}</TD>
-                        <TD>
-                          <Input
-                            type="number"
-                            step="1"
-                            min="0"
-                            placeholder="0"
-                            value={grid[c._id]?.paid ?? ''}
-                            onChange={(e) => setCell(c._id, 'paid', e.target.value)}
-                            className="h-9"
-                          />
-                        </TD>
-                      </TR>
-                    ))}
-                    <TR className="bg-leaf-50/60">
-                      <TD className="font-display text-leaf-900">মোট</TD>
-                      {quickProducts.map((p) => (
-                        <TD key={p._id} />
+                          {quickProducts.map((p) => {
+                            const enabled = !c.quickProducts?.length || c.quickProducts.some((id) => String(id) === String(p._id));
+                            return (
+                            <TD key={p._id} className="px-1 py-2">
+                              {enabled ? (
+                                <Input
+                                  type="number"
+                                  step="0.1"
+                                  min="0"
+                                  placeholder="0"
+                                  value={grid[c._id]?.[p._id] ?? ''}
+                                  onChange={(e) => setCell(c._id, p._id, e.target.value)}
+                                  className="h-8 w-12 px-1 text-center text-xs md:h-9 md:w-14"
+                                />
+                              ) : (
+                                <span className="block text-center text-stone-300">—</span>
+                              )}
+                            </TD>
+                            );
+                          })}
+                          <TD className="num px-1 text-right text-xs font-semibold text-leaf-900 md:text-sm">{taka(rowTotal(c))}</TD>
+                          <TD className="px-1 py-2 md:px-4">
+                            <Input
+                              type="number"
+                              step="1"
+                              min="0"
+                              placeholder="0"
+                              value={grid[c._id]?.paid ?? ''}
+                              onChange={(e) => setCell(c._id, 'paid', e.target.value)}
+                              className="h-8 w-full text-xs md:h-9 md:text-sm"
+                            />
+                          </TD>
+                        </TR>
                       ))}
-                      <TD className="num text-right font-display text-lg text-leaf-900">{taka(gridTotals.total)}</TD>
-                      <TD className="num font-semibold">{taka(gridTotals.paid)}</TD>
-                    </TR>
-                  </tbody>
-                </Table>
+                      <TR className="bg-leaf-50/60">
+                        <TD className="px-2 md:px-4 font-display text-leaf-900 text-xs md:text-sm">মোট</TD>
+                        {quickProducts.map((p) => (
+                          <TD key={p._id} />
+                        ))}
+                        <TD className="num px-1 text-right font-display text-sm md:text-lg text-leaf-900">{taka(gridTotals.total)}</TD>
+                        <TD className="num px-1 md:px-4 font-semibold text-xs md:text-sm">{taka(gridTotals.paid)}</TD>
+                      </TR>
+                    </tbody>
+                  </Table>
+                </div>
                 <p className="mt-3 text-xs text-stone-400">
                   দর প্রতিটি কাস্টমারের নিজের রেট অনুযায়ী নিজে নিজেই বসে। ঘর খালি/০ করে সেভ করলে সেই এন্ট্রি মুছে যায়।
                 </p>
@@ -463,57 +467,113 @@ export default function SalesPage() {
             {daySales.length === 0 ? (
               <p className="py-4 text-center text-sm text-stone-400">এখনো কোনো বিক্রি নেই</p>
             ) : (
-              <Table>
-                <THead>
-                  <tr>
-                    <TH>শিফট</TH>
-                    <TH>কাস্টমার</TH>
-                    <TH>বিক্রেতা</TH>
-                    <TH>পণ্য</TH>
-                    <TH className="text-right">মোট</TH>
-                    <TH className="text-right">নগদ</TH>
-                    <TH className="text-right">বাকি</TH>
-                    <TH className="w-12" />
-                  </tr>
-                </THead>
-                <tbody>
+              <>
+                {/* Mobile cards */}
+                <div className="space-y-3 md:hidden">
                   {daySales.map((s) => (
-                    <TR key={s._id}>
-                      <TD>
-                        {s.channel === 'online' ? (
-                          <Badge tone="ghee">অনলাইন</Badge>
-                        ) : (
-                          SHIFT_LABEL[s.shift] || '—'
-                        )}
-                      </TD>
-                      <TD className="font-medium text-leaf-900">{s.customer?.name || '—'}</TD>
-                      <TD>{s.soldBy?.label || 'মালিক'}</TD>
-                      <TD className="max-w-[260px] truncate" title={itemsSummary(s.items)}>
-                        {itemsSummary(s.items)}
-                      </TD>
-                      <TD className="num text-right font-semibold">{taka(s.total)}</TD>
-                      <TD className="num text-right text-leaf-700">{taka(s.paid)}</TD>
-                      <TD className="num text-right">
-                        {s.due > 0 ? (
-                          <span className="font-semibold text-rose-600">{taka(s.due)}</span>
-                        ) : s.due < 0 ? (
-                          <span className="font-semibold text-leaf-600">অগ্রিম {taka(-s.due)}</span>
-                        ) : '—'}
-                      </TD>
-                      <TD>
-                        {isAdmin && (
-                          <Button variant="dangerGhost" size="icon" onClick={() => removeSale(s._id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </TD>
-                    </TR>
+                    <div key={s._id} className="rounded-xl border border-leaf-100 bg-white p-3 shadow-sm">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-leaf-900 text-sm">{s.customer?.name || '—'}</p>
+                          <p className="text-xs text-stone-400 truncate" title={itemsSummary(s.items)}>{itemsSummary(s.items)}</p>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {s.channel === 'online' ? <Badge tone="ghee">অনলাইন</Badge> : <span className="text-xs text-stone-400">{SHIFT_LABEL[s.shift]}</span>}
+                          {isAdmin && (
+                            <Button variant="dangerGhost" size="icon" className="h-7 w-7" onClick={() => removeSale(s._id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="mt-2 grid grid-cols-3 gap-2 border-t border-leaf-100 pt-2 text-center">
+                        <div>
+                          <p className="text-[10px] text-stone-400">মোট</p>
+                          <p className="text-sm font-semibold text-leaf-900">{taka(s.total)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-stone-400">নগদ</p>
+                          <p className="text-sm font-semibold text-leaf-700">{taka(s.paid)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-stone-400">বাকি</p>
+                          {s.due > 0 ? (
+                            <p className="text-sm font-semibold text-rose-600">{taka(s.due)}</p>
+                          ) : s.due < 0 ? (
+                            <p className="text-xs font-semibold text-leaf-600">অগ্রিম {taka(-s.due)}</p>
+                          ) : <p className="text-sm text-stone-300">—</p>}
+                        </div>
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </Table>
+                </div>
+                {/* Desktop table */}
+                <div className="hidden md:block">
+                  <Table>
+                    <THead>
+                      <tr>
+                        <TH>শিফ্ট</TH>
+                        <TH>কাস্টমার</TH>
+                        <TH>বিক্রেতা</TH>
+                        <TH>পণ্য</TH>
+                        <TH className="text-right">মোট</TH>
+                        <TH className="text-right">নগদ</TH>
+                        <TH className="text-right">বাকি</TH>
+                        <TH className="w-12" />
+                      </tr>
+                    </THead>
+                    <tbody>
+                      {daySales.map((s) => (
+                        <TR key={s._id}>
+                          <TD>
+                            {s.channel === 'online' ? (
+                              <Badge tone="ghee">অনলাইন</Badge>
+                            ) : (
+                              SHIFT_LABEL[s.shift] || '—'
+                            )}
+                          </TD>
+                          <TD className="font-medium text-leaf-900">{s.customer?.name || '—'}</TD>
+                          <TD>{s.soldBy?.label || 'মালিক'}</TD>
+                          <TD className="max-w-[260px] truncate" title={itemsSummary(s.items)}>
+                            {itemsSummary(s.items)}
+                          </TD>
+                          <TD className="num text-right font-semibold">{taka(s.total)}</TD>
+                          <TD className="num text-right text-leaf-700">{taka(s.paid)}</TD>
+                          <TD className="num text-right">
+                            {s.due > 0 ? (
+                              <span className="font-semibold text-rose-600">{taka(s.due)}</span>
+                            ) : s.due < 0 ? (
+                              <span className="font-semibold text-leaf-600">অগ্রিম {taka(-s.due)}</span>
+                            ) : '—'}
+                          </TD>
+                          <TD>
+                            {isAdmin && (
+                              <Button variant="dangerGhost" size="icon" onClick={() => removeSale(s._id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </TD>
+                        </TR>
+                      ))}
+                    </tbody>
+                  </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* floating save — always visible */}
+      {tab === 'quick' && (
+        <button
+          onClick={saveGrid}
+          disabled={saving}
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-leaf-700 px-5 py-3 text-sm font-semibold text-white shadow-lg ring-2 ring-leaf-700/30 transition hover:bg-leaf-800 active:scale-95 disabled:opacity-60 md:hidden"
+        >
+          <Save className="h-4 w-4" />
+          {saving ? 'সেভ হচ্ছে…' : 'সেভ করুন'}
+        </button>
       )}
     </div>
   );

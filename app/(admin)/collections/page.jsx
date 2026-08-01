@@ -146,23 +146,23 @@ export default function CollectionsPage() {
             <CardTitle>
               দুধ সংগ্রহ — {bn(farms.length)}টি ফার্ম
             </CardTitle>
-            <Button onClick={save} loading={saving} className="gap-2">
+            <Button onClick={save} loading={saving} className="hidden gap-2 md:flex">
               <Save className="h-4 w-4" />
               সেভ করুন
             </Button>
           </CardHeader>
           <CardContent>
+            <div className="relative">
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-white/90 to-transparent md:hidden" />
             <Table>
               <THead>
                 <tr>
-                  <TH>ফার্ম</TH>
-                  <TH className="w-20 text-sky-600 bg-sky-50">সকাল (কেজি)</TH>
-                  <TH className="text-right w-24 text-sky-600 bg-sky-50">সকালের দাম</TH>
-                  <TH className="w-2 bg-stone-100" />
-                  <TH className="w-20 text-orange-500 bg-orange-50">বিকাল (কেজি)</TH>
-                  <TH className="text-right w-24 text-orange-500 bg-orange-50">বিকালের দাম</TH>
-                  <TH className="text-right w-24 text-violet-600">মোট (কেজি)</TH>
-                  <TH className="text-right w-24 text-emerald-600">মোট দাম</TH>
+                  <TH className="px-2 md:px-4">ফার্ম</TH>
+                  <TH className="px-1 md:px-4 text-center text-sky-600 bg-sky-50">সকাল</TH>
+                  <TH className="w-1 md:w-2 bg-stone-100" />
+                  <TH className="px-1 md:px-4 text-center text-orange-500 bg-orange-50">বিকাল</TH>
+                  <TH className="px-2 md:px-4 text-right text-violet-600">মোট</TH>
+                  <TH className="px-2 md:px-4 text-right text-emerald-600">দাম</TH>
                 </tr>
               </THead>
               <tbody>
@@ -171,49 +171,62 @@ export default function CollectionsPage() {
                   const a = Number(qty.afternoon[f._id]) || 0;
                   return (
                     <TR key={f._id}>
-                      <TD className="font-medium text-leaf-900">{f.name}</TD>
-                      <TD className="bg-sky-50 px-1">
-                        <Input
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          placeholder="০"
-                          value={qty.morning[f._id] ?? ''}
-                          onChange={(e) => setQty((q) => ({ ...q, morning: { ...q.morning, [f._id]: e.target.value } }))}
-                          className="h-8 w-20 px-2"
-                        />
+                      <TD className="px-2 md:px-4 font-medium text-leaf-900 text-xs md:text-sm">{f.name}</TD>
+                      <TD className="bg-sky-50 px-1 md:px-3 py-1.5 md:py-2 text-center">
+                        <div className="flex flex-col items-center gap-0.5 md:flex-row md:items-center md:gap-1.5">
+                          <Input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            placeholder="০"
+                            value={qty.morning[f._id] ?? ''}
+                            onChange={(e) => setQty((q) => ({ ...q, morning: { ...q.morning, [f._id]: e.target.value } }))}
+                            className="h-7 w-12 px-1 text-xs md:h-8 md:w-16 md:px-2"
+                          />
+                          <span className="num text-xs font-semibold text-sky-600 whitespace-nowrap">{taka(m * f.ratePerKg)}</span>
+                        </div>
                       </TD>
-                      <TD className="num text-right font-semibold text-sky-600 bg-sky-50">{taka(m * f.ratePerKg)}</TD>
-                      <TD className="bg-stone-100" />
-                      <TD className="bg-orange-50 px-1">
-                        <Input
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          placeholder="০"
-                          value={qty.afternoon[f._id] ?? ''}
-                          onChange={(e) => setQty((q) => ({ ...q, afternoon: { ...q.afternoon, [f._id]: e.target.value } }))}
-                          className="h-8 w-20 px-2"
-                        />
+                      <TD className="w-1 md:w-2 bg-stone-100" />
+                      <TD className="bg-orange-50 px-1 md:px-3 py-1.5 md:py-2 text-center">
+                        <div className="flex flex-col items-center gap-0.5 md:flex-row md:items-center md:gap-1.5">
+                          <Input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            placeholder="০"
+                            value={qty.afternoon[f._id] ?? ''}
+                            onChange={(e) => setQty((q) => ({ ...q, afternoon: { ...q.afternoon, [f._id]: e.target.value } }))}
+                            className="h-7 w-12 px-1 text-xs md:h-8 md:w-16 md:px-2"
+                          />
+                          <span className="num text-xs font-semibold text-orange-500 whitespace-nowrap">{taka(a * f.ratePerKg)}</span>
+                        </div>
                       </TD>
-                      <TD className="num text-right font-semibold text-orange-500 bg-orange-50">{taka(a * f.ratePerKg)}</TD>
-                      <TD className="num text-right font-bold text-violet-600 text-base">{bn(m + a)} কেজি</TD>
-                      <TD className="num text-right font-bold text-emerald-600 text-base">{taka((m + a) * f.ratePerKg)}</TD>
+                      <TD className="num px-2 md:px-4 text-right font-bold text-violet-600 text-xs md:text-base">{bn(m + a)}<span className="hidden md:inline"> কেজি</span></TD>
+                      <TD className="num px-2 md:px-4 text-right font-bold text-emerald-600 text-xs md:text-base">{taka((m + a) * f.ratePerKg)}</TD>
                     </TR>
                   );
                 })}
                 <TR className="bg-leaf-50/60">
-                  <TD className="font-display text-leaf-900">মোট</TD>
-                  <TD className="num font-semibold text-sky-600 bg-sky-50">{bn(totals.morning)} কেজি</TD>
-                  <TD className="num text-right font-display text-sky-600 bg-sky-50">{taka(totals.morningAmount)}</TD>
-                  <TD className="bg-stone-100" />
-                  <TD className="num font-semibold text-orange-500 bg-orange-50">{bn(totals.afternoon)} কেজি</TD>
-                  <TD className="num text-right font-display text-orange-500 bg-orange-50">{taka(totals.afternoonAmount)}</TD>
-                  <TD className="num text-right font-display text-xl text-violet-600">{bn(totals.total)} কেজি</TD>
-                  <TD className="num text-right font-display text-xl text-emerald-600">{taka(totals.morningAmount + totals.afternoonAmount)}</TD>
+                  <TD className="px-2 md:px-4 font-display text-leaf-900 text-xs md:text-sm">মোট</TD>
+                  <TD className="bg-sky-50 px-1 md:px-3 py-1.5 md:py-2 text-center">
+                    <div className="flex flex-col items-center gap-0.5 md:flex-row md:justify-center md:gap-1.5">
+                      <span className="num font-semibold text-sky-600 text-xs md:text-sm">{bn(totals.morning)}<span className="hidden md:inline"> কেজি</span></span>
+                      <span className="num text-xs font-display text-sky-600 whitespace-nowrap">{taka(totals.morningAmount)}</span>
+                    </div>
+                  </TD>
+                  <TD className="w-1 md:w-2 bg-stone-100" />
+                  <TD className="bg-orange-50 px-1 md:px-3 py-1.5 md:py-2 text-center">
+                    <div className="flex flex-col items-center gap-0.5 md:flex-row md:justify-center md:gap-1.5">
+                      <span className="num font-semibold text-orange-500 text-xs md:text-sm">{bn(totals.afternoon)}<span className="hidden md:inline"> কেজি</span></span>
+                      <span className="num text-xs font-display text-orange-500 whitespace-nowrap">{taka(totals.afternoonAmount)}</span>
+                    </div>
+                  </TD>
+                  <TD className="num px-2 md:px-4 text-right font-display text-sm md:text-xl text-violet-600">{bn(totals.total)}<span className="hidden md:inline"> কেজি</span></TD>
+                  <TD className="num px-2 md:px-4 text-right font-display text-sm md:text-xl text-emerald-600">{taka(totals.morningAmount + totals.afternoonAmount)}</TD>
                 </TR>
               </tbody>
             </Table>
+            </div>
             <p className="mt-3 text-xs text-stone-400">
               টিপস: কোনো ফার্ম থেকে দুধ না এলে ঘরটা খালি/০ রাখুন — সেভ করলে সেই এন্ট্রি মুছে যাবে।
             </p>
@@ -464,6 +477,16 @@ export default function CollectionsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* floating save — always visible on mobile */}
+      <button
+        onClick={save}
+        disabled={saving}
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-leaf-700 px-5 py-3 text-sm font-semibold text-white shadow-lg ring-2 ring-leaf-700/30 transition hover:bg-leaf-800 active:scale-95 disabled:opacity-60 md:hidden"
+      >
+        <Save className="h-4 w-4" />
+        {saving ? 'সেভ হচ্ছে…' : 'সেভ করুন'}
+      </button>
     </div>
   );
 }
