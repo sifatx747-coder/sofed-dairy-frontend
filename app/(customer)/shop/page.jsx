@@ -60,7 +60,10 @@ export default function ShopPage() {
     return Object.entries(cart)
       .map(([id, { qty, unit }]) => {
         const p = products.find((x) => x._id === id);
-        return p ? { ...p, qty, unit, amount: qty * p.rate } : null;
+        if (!p) return null;
+        const multiplier = p.unitMultipliers?.[unit] ?? 1;
+        const rate = p.rate * multiplier;
+        return { ...p, qty, unit, rate, amount: qty * rate };
       })
       .filter(Boolean);
   }, [cart, products]);
@@ -136,8 +139,8 @@ export default function ShopPage() {
                   {p.description && <p className="mt-0.5 line-clamp-2 text-xs text-stone-500">{p.description}</p>}
                   <div className="mt-3 flex items-center justify-between gap-2">
                     <p className="num font-semibold text-ghee-600">
-                      {taka(p.rate)}
-                      <span className="text-xs font-normal text-stone-400">/{p.unit}</span>
+                      {taka((p.unitMultipliers?.[unit] ?? 1) * p.rate)}
+                      <span className="text-xs font-normal text-stone-400">/{unit}</span>
                     </p>
                     {units.length > 1 && (
                       <Select
@@ -147,7 +150,7 @@ export default function ShopPage() {
                       >
                         {units.map((u) => (
                           <option key={u} value={u}>
-                            {u}
+                            {u} — {taka((p.unitMultipliers?.[u] ?? 1) * p.rate)}
                           </option>
                         ))}
                       </Select>

@@ -20,6 +20,12 @@ const FILTERS = [
   { value: 'cancelled', label: 'বাতিল' },
 ];
 
+const SOURCE_FILTERS = [
+  { value: 'all', label: 'সব সোর্স' },
+  { value: 'campaign', label: '📢 ক্যাম্পেইন' },
+  { value: 'shop', label: '🛒 শপ' },
+];
+
 const unitsOf = (p) => (p?.unitOptions?.length ? p.unitOptions : p ? [p.unit] : []);
 
 const fmtWhen = (d) =>
@@ -43,6 +49,7 @@ function historyLine(h) {
 
 export default function OrdersPage() {
   const [status, setStatus] = useState('all');
+  const [source, setSource] = useState('all');
   const [range, setRange] = useState({ from: '', to: '' });
   const [page, setPage] = useState(1);
   const [data, setData] = useState(null); // { rows, total, page, pages }
@@ -63,6 +70,7 @@ export default function OrdersPage() {
 
   const load = () => {
     const qs = new URLSearchParams({ status, page: String(page) });
+    if (source !== 'all') qs.set('source', source);
     if (range.from) qs.set('from', range.from);
     if (range.to) qs.set('to', range.to);
     return api(`/orders?${qs.toString()}`)
@@ -74,12 +82,12 @@ export default function OrdersPage() {
     setData(null);
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, page, range.from, range.to]);
+  }, [status, source, page, range.from, range.to]);
 
   // reset to page 1 when the filter changes
   useEffect(() => {
     setPage(1);
-  }, [status, range.from, range.to]);
+  }, [status, source, range.from, range.to]);
 
   const updateStatus = async (order, nextStatus) => {
     setBusyId(order._id);
@@ -201,6 +209,20 @@ export default function OrdersPage() {
             {f.label}
           </button>
         ))}
+        <span className="w-px bg-leaf-100 mx-1" />
+        {SOURCE_FILTERS.map((f) => (
+          <button
+            key={f.value}
+            onClick={() => setSource(f.value)}
+            className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
+              source === f.value
+                ? 'bg-ghee-400 text-leaf-900 shadow-sm'
+                : 'bg-surface text-leaf-800 ring-1 ring-leaf-200 hover:bg-leaf-50'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
       </div>
 
       {data.rows.length === 0 ? (
@@ -225,6 +247,9 @@ export default function OrdersPage() {
                     <p className="truncate font-medium text-leaf-900">{o.customer?.name || '—'}</p>
                     <p className="truncate text-[11px] text-stone-400">
                       {fmtWhen(o.createdAt)} · {bn(o.items.length)}টি পণ্য
+                      {o.source === 'campaign' && (
+                        <span className="ml-1.5 inline-flex items-center rounded-full bg-ghee-100 px-2 py-0.5 text-[10px] font-semibold text-ghee-700">📢 ক্যাম্পেইন</span>
+                      )}
                     </p>
                   </div>
                   <span className="num hidden text-sm font-semibold text-leaf-900 sm:block">{taka(o.total)}</span>
@@ -249,6 +274,12 @@ export default function OrdersPage() {
                               <span className="num">{taka(it.amount)}</span>
                             </div>
                           ))}
+                          {o.deliveryCharge > 0 && (
+                            <div className="flex items-center justify-between text-stone-500">
+                              <span>🚚 ডেলিভারি চার্জ</span>
+                              <span className="num">{taka(o.deliveryCharge)}</span>
+                            </div>
+                          )}
                           <div className="flex items-center justify-between border-t border-leaf-100 pt-1.5 font-semibold text-leaf-900">
                             <span>মোট</span>
                             <span className="num">{taka(o.total)}</span>

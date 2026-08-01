@@ -17,6 +17,7 @@ const emptyForm = {
   name: '', category: 'milk', unit: 'কেজি', extraUnits: [], defaultRate: '', description: '',
   availableOnline: false, quickSale: false,
 };
+// extraUnits is now [{ label, multiplier }]
 
 export default function ProductsPage() {
   const [products, setProducts] = useState(null);
@@ -28,11 +29,16 @@ export default function ProductsPage() {
 
   const addUnit = (raw) => {
     const u = String(raw || '').trim();
-    if (!u || u === form.unit || form.extraUnits.includes(u)) return;
-    setForm((f) => ({ ...f, extraUnits: [...f.extraUnits, u] }));
+    if (!u || u === form.unit || form.extraUnits.find((x) => x.label === u)) return;
+    setForm((f) => ({ ...f, extraUnits: [...f.extraUnits, { label: u, multiplier: '' }] }));
     setUnitInput('');
   };
-  const removeUnit = (u) => setForm((f) => ({ ...f, extraUnits: f.extraUnits.filter((x) => x !== u) }));
+  const removeUnit = (u) => setForm((f) => ({ ...f, extraUnits: f.extraUnits.filter((x) => x.label !== u) }));
+  const setMultiplier = (u, val) =>
+    setForm((f) => ({
+      ...f,
+      extraUnits: f.extraUnits.map((x) => (x.label === u ? { ...x, multiplier: val } : x)),
+    }));
 
   const load = () =>
     api('/products?all=1')
@@ -52,7 +58,10 @@ export default function ProductsPage() {
   const openEdit = (p) => {
     setForm({
       name: p.name, category: p.category, unit: p.unit,
-      extraUnits: (p.unitOptions || []).filter((u) => u !== p.unit),
+      extraUnits: (p.unitOptions || []).filter((u) => u !== p.unit).map((u) => ({
+        label: u,
+        multiplier: p.unitMultipliers?.[u] != null ? String(p.unitMultipliers[u]) : '',
+      })),
       defaultRate: p.defaultRate,
       description: p.description || '', availableOnline: p.availableOnline, quickSale: p.quickSale,
     });
@@ -71,9 +80,15 @@ export default function ProductsPage() {
         image = await api('/products/upload', { method: 'POST', body: fd });
       }
       const { extraUnits, ...rest } = form;
+      const unitMultipliers = {};
+      for (const { label, multiplier } of extraUnits) {
+        const m = Number(multiplier);
+        if (m > 0) unitMultipliers[label] = m;
+      }
       const body = {
         ...rest,
-        unitOptions: [form.unit, ...extraUnits],
+        unitOptions: [form.unit, ...extraUnits.map((x) => x.label)],
+        unitMultipliers,
         defaultRate: Number(form.defaultRate),
         ...(image ? { image } : {}),
       };
@@ -194,15 +209,37 @@ export default function ProductsPage() {
             </div>
 
             <Field label="অন্যান্য একক (যেমন: ৫০০ গ্রাম, ৩০০ গ্রাম — অর্ডার/বিক্রিতে বেছে নেওয়া যাবে)">
-              <div className="flex flex-wrap gap-1.5">
-                <Badge tone="leaf">{form.unit} <span className="text-leaf-600/70">(মূল)</span></Badge>
-                {form.extraUnits.map((u) => (
-                  <span key={u} className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-semibold text-stone-600">
-                    {u}
-                    <button type="button" onClick={() => removeUnit(u)} className="text-stone-400 hover:text-rose-500">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  <Badge tone="leaf">{form.unit} <span className="text-leaf-600/70">(মূল · ×১)</span></Badge>
+                </div>
+                {form.extraUnits.map((eu) => (
+                  <div key={eu.label} className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2.5 py-1 text-xs font-semibold text-stone-700 shrink-0">
+                      {eu.label}
+                      <button type="button" onClick={() => removeUnit(eu.label)} className="text-stone-400 hover:text-rose-500 ml-0.5">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                    <div className="flex items-center gap-1.5 text-xs text-stone-500">
+                      <span>দাম গুণক:</span>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        max="1"
+                        value={eu.multiplier}
+                        onChange={(e) => setMultiplier(eu.label, e.target.value)}
+                        placeholder="যেমন: 0.5"
+                        className="h-8 w-24 text-sm px-2"
+                      />
+                      {eu.multiplier && Number(eu.multiplier) > 0 && form.defaultRate && (
+                        <span className="text-leaf-700 font-semibold">
+                          = ৳{(Number(form.defaultRate) * Number(eu.multiplier)).toFixed(0)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 ))}
               </div>
               <div className="mt-2 flex gap-2">
@@ -221,7 +258,7 @@ export default function ProductsPage() {
                 <Button type="button" variant="outline" onClick={() => addUnit(unitInput)}>যোগ</Button>
               </div>
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {COMMON_UNITS.filter((u) => u !== form.unit && !form.extraUnits.includes(u)).map((u) => (
+                {COMMON_UNITS.filter((u) => u !== form.unit && !form.extraUnits.find((x) => x.label === u)).map((u) => (
                   <button
                     key={u}
                     type="button"
@@ -232,6 +269,7 @@ export default function ProductsPage() {
                   </button>
                 ))}
               </div>
+              <p className="mt-1.5 text-xs text-stone-400">গুণক উদাহরণ: ৫০০ গ্রাম = 0.5, ২৫০ গ্রাম = 0.25, ২ লিটার = 2</p>
             </Field>
 
             <Field label="সাধারণ দাম (৳)">

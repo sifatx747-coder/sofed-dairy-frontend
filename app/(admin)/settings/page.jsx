@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, Truck } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import {
@@ -13,6 +13,30 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const [form, setForm] = useState({ current: '', next: '', confirm: '' });
   const [busy, setBusy] = useState(false);
+
+  const [deliveryCharge, setDeliveryCharge] = useState('');
+  const [dcBusy, setDcBusy] = useState(false);
+
+  useEffect(() => {
+    api('/settings')
+      .then((s) => setDeliveryCharge(String(s.deliveryCharge ?? 0)))
+      .catch(() => {});
+  }, []);
+
+  const saveDeliveryCharge = async (e) => {
+    e.preventDefault();
+    const val = Number(deliveryCharge);
+    if (isNaN(val) || val < 0) { toast.error('সঠিক পরিমাণ দিন'); return; }
+    setDcBusy(true);
+    try {
+      await api('/settings', { method: 'PUT', body: { deliveryCharge: val } });
+      toast.success('ডেলিভারি চার্জ সেভ হয়েছে');
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setDcBusy(false);
+    }
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -37,6 +61,35 @@ export default function SettingsPage() {
       <PageHeader title="সেটিংস" desc="অ্যাকাউন্ট ও নিরাপত্তা" />
 
       <div className="grid gap-6 lg:grid-cols-2">
+        {/* Delivery charge card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Truck className="h-5 w-5 text-leaf-600" />
+              ডেলিভারি চার্জ
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={saveDeliveryCharge} className="space-y-4">
+              <Field label="ক্যাম্পেইন অর্ডারে ডেলিভারি চার্জ (টাকা)">
+                <Input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={deliveryCharge}
+                  onChange={(e) => setDeliveryCharge(e.target.value)}
+                  placeholder="০ = বিনামূল্যে"
+                />
+              </Field>
+              <p className="text-xs text-stone-400">
+                ০ রাখলে ক্যাম্পেইন পেজে &quot;বিনামূল্যে ডেলিভারি&quot; দেখাবে।
+              </p>
+              <Button type="submit" loading={dcBusy}>
+                সেভ করুন
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <CardTitle>আমার অ্যাকাউন্ট</CardTitle>

@@ -143,11 +143,11 @@ export default function LoginPage() {
             </Link>
           </p>
 
-          <div className="mt-6 rounded-xl bg-leaf-100/60 p-4 text-xs leading-relaxed text-leaf-900/70">
+          {/* <div className="mt-6 rounded-xl bg-leaf-100/60 p-4 text-xs leading-relaxed text-leaf-900/70">
             <p className="font-semibold text-leaf-900">ডেমো লগইন (সিড করার পর):</p>
             <p>মালিক: 01700000000 / admin123</p>
             <p>কাস্টমার: 01800000000 / customer123</p>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
