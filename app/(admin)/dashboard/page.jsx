@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import {
   Droplets, Banknote, Wallet, Tractor, UserCog, ClipboardList, ArrowLeft, HandCoins,
   TrendingUp, Users, BadgeDollarSign, CalendarDays, CalendarRange, RotateCcw, Infinity,
+  FlaskConical, Home, PackageX,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -65,10 +66,27 @@ function Panel({ title, icon: Icon, iconColor = 'text-leaf-600', border = 'borde
   );
 }
 
+/* ── daily stat cards ── */
+function DailyStats({ data }) {
+  // total cash physically received today = sales cash + baki adai + employee deposits
+  const todayHateAche = Math.round((data.cashIn + (data.todayEmpDeposits || 0)) * 100) / 100;
+  return (
+    <div className="mb-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <StatCard label="আজের দুধ সংগ্রহ" value={`${bn(data.collections.kg)} কেজি`} sub={`সকাল ${bn(data.collections.morning.kg)} / বিকাল ${bn(data.collections.afternoon.kg)}`} tone="leaf" />
+      <StatCard label="আজের বিক্রি" value={taka(data.sales.total)} sub={`নগদ পাওয়া ${taka(data.sales.paid)}`} tone="ghee" />
+      <StatCard label="আজ নগদ এসেছে" value={taka(data.cashIn)} sub="বিক্রি + বকেয়া আদায়" tone="leaf" />
+      <StatCard label="আজ হাতে আছে" value={taka(todayHateAche)} sub="বিক্রি + বকেয়া + কর্মচারী জমা" tone="leaf" />
+    </div>
+  );
+}
+
 /* ── daily panel ── */
 function DailyPanel({ data, date, setDate }) {
-  const due = data.sales.total - data.sales.paid;
-  const duesAdai = data.cashIn - data.sales.paid;
+  const newDue = Math.max(0, data.sales.total - data.sales.paid);
+  const overpaid = Math.max(0, data.sales.paid - data.sales.total);
+  // baki adai = customer due payments received today (cashIn = sales.paid + custPayToday)
+  const bokeyaAdai = Math.max(0, data.cashIn - data.sales.paid);
+  const bal = data.recon?.balance ?? 0;
   return (
     <Panel
       title="আজকের হিসাব"
@@ -84,13 +102,47 @@ function DailyPanel({ data, date, setDate }) {
         </div>
       }
     >
-      <Row icon={Droplets} label="দুধ সংগ্রহ" value={`${bn(data.collections.kg)} কেজি`} />
-      <Row icon={Droplets} label="সকাল / বিকাল" value={`${bn(data.collections.morning.kg)} / ${bn(data.collections.afternoon.kg)} কেজি`} tone="stone" />
-      <Row icon={Banknote} label="বিক্রি (মোট)" value={taka(data.sales.total)} />
-      <Row icon={Banknote} label="বিক্রি (দুধ)" value={`${bn(data.sales.kg)} কেজি`} tone="stone" />
+      <Row icon={Droplets} label="দুধ সংগ্রহ" value={`${bn(data.collections.kg)} কেজি — ${taka(data.collections.amount)}`} />
+      <Row icon={Droplets} label="সকাল / বিকাল" value={`${bn(data.collections.morning.kg)} (${taka(data.collections.morning.amount)}) / ${bn(data.collections.afternoon.kg)} (${taka(data.collections.afternoon.amount)})`} tone="stone" />
+      <Row icon={Banknote} label="বিক্রি" value={`${bn(data.sales.kg)} কেজি — ${taka(data.sales.total)}`} />
+      {data.production?.totalMilkKg > 0 && (
+        <Row icon={FlaskConical} label="উৎপাদনে দুধ" value={`${bn(data.production.totalMilkKg)} কেজি`} tone="stone" />
+      )}
+      {data.adjustments?.homeKg > 0 && (
+        <Row icon={Home} label="ঘরের দুধ" value={`${bn(data.adjustments.homeKg)} কেজি`} tone="stone" />
+      )}
+      {data.adjustments?.leakKg > 0 && (
+        <Row icon={PackageX} label="লিক/ফেরত" value={`−${bn(data.adjustments.leakKg)} কেজি`} tone="rose" />
+      )}
+      <Row
+        icon={Droplets}
+        label="দুধের ব্যালেন্স"
+        value={`${bal > 0 ? '+' : ''}${bn(bal)} কেজি`}
+        tone={bal === 0 ? 'leaf' : bal > 0 ? 'ghee' : 'rose'}
+      />
       <Row icon={Wallet} label="নগদ এসেছে" value={taka(data.cashIn)} tone="ghee" />
-      <Row icon={BadgeDollarSign} label="নতুন বাকি" value={taka(due)} tone="rose" />
-      <Row icon={Users} label="বকেয়া আদায়" value={taka(duesAdai)} tone="leaf" />
+      {(data.todayEmpDeposits || 0) > 0 && (
+        <Row icon={Users} label="কর্মচারী জমা পেয়েছি" value={taka(data.todayEmpDeposits)} tone="leaf" />
+      )}
+      {(data.todayFarmPaid || 0) > 0 && (
+        <Row icon={Tractor} label="ফার্মকে দিয়েছি" value={`−${taka(data.todayFarmPaid)}`} tone="stone" />
+      )}
+      <Row
+        icon={HandCoins}
+        label="আজ হাতে আছে"
+        value={taka(data.cashIn + (data.todayEmpDeposits || 0))}
+        tone="ghee"
+      />
+      <Row icon={Tractor} label="ফার্ম বাকি (আজকের)" value={taka(Math.max(0, data.collections.amount - (data.todayFarmPaid || 0)))} tone="rose" />
+      {newDue > 0 && (
+        <Row icon={BadgeDollarSign} label="নতুন বাকি" value={taka(newDue)} tone="rose" />
+      )}
+      {overpaid > 0 && (
+        <Row icon={BadgeDollarSign} label="অতিরিক্ত পেমেন্ট" value={taka(overpaid)} tone="ghee" />
+      )}
+      {bokeyaAdai > 0 && (
+        <Row icon={Users} label="বকেয়া আদায়" value={taka(bokeyaAdai)} tone="leaf" />
+      )}
     </Panel>
   );
 }
@@ -272,6 +324,9 @@ export default function DashboardPage() {
         </Link>
       )}
 
+      {/* Daily stat cards */}
+      <DailyStats data={data} />
+
       {/* Row 1: Daily | Monthly */}
       <div className="grid gap-5 lg:grid-cols-2">
         <DailyPanel data={data} date={date} setDate={setDate} />
@@ -284,30 +339,84 @@ export default function DashboardPage() {
         <AllTimePanel data={data} />
       </div>
 
-      {/* Recent deposits */}
-      {data.recentDeposits?.length > 0 && (
-        <Card className="mt-5">
+      {/* Row 3: Employee deposits (left) + Production (right) */}
+      <div className="mt-5 grid gap-5 lg:grid-cols-2">
+        {/* কর্মচারী জমা */}
+        <Card>
           <CardHeader><CardTitle>সাম্প্রতিক কর্মচারী জমা</CardTitle></CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {data.recentDeposits.map((d) => (
-                <div key={d._id} className="flex items-center justify-between rounded-lg border border-leaf-100 px-3 py-2 text-sm">
-                  <span className="text-stone-600">
-                    <span className="font-medium text-leaf-900">{d.employeeName}</span>
-                    <span className="mx-1.5 text-stone-300">·</span>
-                    {bnDate(d.date)}
-                    {d.note && <span className="text-stone-400"> · {d.note}</span>}
-                  </span>
-                  <span className="num font-semibold text-leaf-700">{taka(d.amount)}</span>
+            {data.recentDeposits?.length > 0 ? (
+              <>
+                <div className="space-y-2">
+                  {data.recentDeposits.map((d) => (
+                    <div key={d._id} className="flex items-center justify-between rounded-lg border border-leaf-100 px-3 py-2 text-sm">
+                      <span className="text-stone-600">
+                        <span className="font-medium text-leaf-900">{d.employeeName}</span>
+                        <span className="mx-1.5 text-stone-300">·</span>
+                        {bnDate(d.date)}
+                        {d.note && <span className="text-stone-400"> · {d.note}</span>}
+                      </span>
+                      <span className="num font-semibold text-leaf-700">{taka(d.amount)}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            <Link href="/employees" className="mt-3 block text-center text-xs text-leaf-600 hover:underline">
-              সব কর্মচারীর হিসাব দেখুন →
-            </Link>
+                <Link href="/employees" className="mt-3 block text-center text-xs text-leaf-600 hover:underline">
+                  সব কর্মচারীর হিসাব দেখুন →
+                </Link>
+              </>
+            ) : (
+              <p className="py-4 text-center text-sm text-stone-400">কোনো জমা নেই</p>
+            )}
           </CardContent>
         </Card>
-      )}
+
+        {/* উৎপাদন */}
+        <Card>
+          <CardHeader>
+            <CardTitle>আজকের উৎপাদন</CardTitle>
+            <Link href="/production" className="text-xs text-leaf-600 hover:underline">সব দেখুন →</Link>
+          </CardHeader>
+          <CardContent>
+            {data.production?.rows?.length > 0 ? (
+              <div className="space-y-2">
+                {data.production.rows.map((p, i) => (
+                  <div key={i} className="flex items-center justify-between rounded-lg border border-leaf-100 px-3 py-2 text-sm">
+                    <span className="font-medium text-leaf-900">{p.type}</span>
+                    <div className="flex items-center gap-3 text-stone-500">
+                      {p.outputQty > 0 && (
+                        <span className="num">{bn(p.outputQty)} {p.outputUnit}</span>
+                      )}
+                      <span className="num text-stone-400">{bn(p.milkUsedKg)} কেজি দুধ</span>
+                    </div>
+                  </div>
+                ))}
+                <div className="mt-1 flex items-center justify-between rounded-lg bg-leaf-50 px-3 py-2 text-sm font-semibold">
+                  <span className="text-leaf-800">মোট দুধ ব্যবহার</span>
+                  <span className="num text-leaf-900">{bn(data.production.totalMilkKg)} কেজি</span>
+                </div>
+              </div>
+            ) : (
+              <p className="py-2 text-sm text-stone-400">আজ কোনো উৎপাদন নেই</p>
+            )}
+            {(data.adjustments?.homeKg > 0 || data.adjustments?.leakKg > 0) && (
+              <div className="mt-3 space-y-1.5 border-t border-leaf-100 pt-3">
+                {data.adjustments.homeKg > 0 && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1.5 text-stone-500"><Home className="h-4 w-4" /> ঘরের দুধ</span>
+                    <span className="num font-medium text-stone-700">{bn(data.adjustments.homeKg)} কেজি</span>
+                  </div>
+                )}
+                {data.adjustments.leakKg > 0 && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1.5 text-rose-500"><PackageX className="h-4 w-4" /> লিক/ফেরত</span>
+                    <span className="num font-medium text-rose-600">−{bn(data.adjustments.leakKg)} কেজি</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Chart */}
       <Card className="mt-5">

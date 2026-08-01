@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Droplets, Trash2, Save, Banknote, CheckCircle2 } from 'lucide-react';
+import { Droplets, Trash2, Save, Banknote, CheckCircle2, HandCoins } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { bn, taka, todayStr } from '@/lib/utils';
@@ -171,7 +171,21 @@ export default function CollectionsPage() {
                   const a = Number(qty.afternoon[f._id]) || 0;
                   return (
                     <TR key={f._id}>
-                      <TD className="px-2 md:px-4 font-medium text-leaf-900 text-xs md:text-sm">{f.name}</TD>
+                      <TD className="px-2 md:px-4">
+                            <p className="font-medium text-leaf-900 text-xs md:text-sm leading-tight">{f.name}</p>
+                            {(() => { const fd = allFarms[f._id]; return fd?.due > 0 ? (
+                              <div className="mt-0.5 flex items-center gap-1">
+                                <p className="text-xs font-semibold text-rose-500">{taka(fd.due)}</p>
+                                <button
+                                  onClick={() => openPay(f._id, f.name, fd.due)}
+                                  className="flex items-center gap-0.5 rounded-md bg-leaf-100 px-1.5 py-0.5 text-[11px] font-semibold text-leaf-700 hover:bg-leaf-200"
+                                >
+                                  <HandCoins className="h-2.5 w-2.5" />
+                                  টাকা দিন
+                                </button>
+                              </div>
+                            ) : null; })()}
+                          </TD>
                       <TD className="bg-sky-50 px-1 md:px-3 py-1.5 md:py-2 text-center">
                         <div className="flex flex-col items-center gap-0.5 md:flex-row md:items-center md:gap-1.5">
                           <Input

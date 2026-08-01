@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Banknote, Plus, Trash2, Save } from 'lucide-react';
+import { Banknote, Plus, Trash2, Save, HandCoins } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { bn, taka, rateFor, SHIFT_LABEL, todayStr } from '@/lib/utils';
@@ -36,6 +36,33 @@ export default function SalesPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ customer: '', items: [emptyItem()], paid: '', note: '' });
   const [busy, setBusy] = useState(false);
+
+  // baki payment dialog
+  const [payTarget, setPayTarget] = useState(null);
+  const [pay, setPay] = useState({ date: todayStr(), amount: '', note: '' });
+  const [payBusy, setPayBusy] = useState(false);
+
+  const openPay = (s) => {
+    setPay({ date: date, amount: '', note: '' });
+    setPayTarget(s);
+  };
+
+  const savePayment = async () => {
+    setPayBusy(true);
+    try {
+      await api(`/customers/${payTarget.customer._id}/payments`, {
+        method: 'POST',
+        body: { date: pay.date, amount: Number(pay.amount), note: pay.note },
+      });
+      toast.success(`${payTarget.customer?.name} থেকে ${taka(pay.amount)} আদায় হয়েছে`);
+      setPayTarget(null);
+      loadDay(date);
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setPayBusy(false);
+    }
+  };
 
   useEffect(() => {
     Promise.all([api('/customers'), api('/products')])
@@ -199,6 +226,12 @@ export default function SalesPage() {
       toast.error(err.message);
     }
   };
+
+  const [colsExpanded, setColsExpanded] = useState(false);
+  const [focusedCust, setFocusedCust] = useState(null);
+  const VISIBLE_COLS = 5;
+  const visibleProducts = colsExpanded ? quickProducts : quickProducts.slice(0, VISIBLE_COLS);
+  const hiddenCount = quickProducts.length - VISIBLE_COLS;
 
   if (!customers) return <PageLoader />;
 
@@ -376,32 +409,66 @@ export default function SalesPage() {
               </p>
             ) : (
               <>
-                <div className="relative">
+                <div className="relative overflow-auto max-h-[72vh] md:max-h-none md:overflow-x-auto">
                   <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-white/90 to-transparent md:hidden" />
-                  <Table>
-                    <THead>
+                  {/* floating customer name banner — mobile only */}
+                  {focusedCust && (
+                    <div className="fixed top-0 left-0 right-0 z-50 flex items-center gap-2 bg-leaf-700 px-4 py-6 shadow-md md:hidden">
+                      <span className="text-sm font-semibold text-white truncate">Customer Name: {focusedCust.name}</span>
+                      {focusedCust.due > 0 && (
+                        <span className="shrink-0 rounded-full bg-rose-500 px-2 py-0.5 text-[11px] font-semibold text-white">
+                          বাকি {taka(focusedCust.due)}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  <Table noWrapper>
+                    <THead className="sticky top-0 z-20 shadow-sm">
                       <tr>
-                        <TH className="px-2 md:px-4 text-xs md:text-sm">দোকান</TH>
-                        {quickProducts.map((p) => (
-                          <TH key={p._id} className="w-14 px-1 text-center whitespace-normal leading-tight">
+                        <TH className="bg-white px-2 md:px-4 text-xs md:text-sm">দোকান</TH>
+                        {visibleProducts.map((p) => (
+                          <TH key={p._id} className="bg-white w-14 px-1 text-center whitespace-normal leading-tight">
                             <span className="block text-xs md:text-sm">{p.name}</span>
                             <span className="block text-[10px] font-normal text-stone-400">({p.unit})</span>
                           </TH>
                         ))}
-                        <TH className="w-14 px-1 text-right text-xs md:text-sm">মোট</TH>
-                        <TH className="w-28 px-2 md:w-40 md:px-4 text-xs md:text-sm">নগদ জমা (৳)</TH>
+                        {quickProducts.length > VISIBLE_COLS && (
+                          <TH className="bg-white w-10 px-1 text-center">
+                            <button
+                              onClick={() => setColsExpanded((v) => !v)}
+                              className="inline-flex flex-col items-center gap-0.5 rounded-lg bg-leaf-100 px-1.5 py-1 text-[10px] font-semibold text-leaf-700 hover:bg-leaf-200"
+                            >
+                              {colsExpanded ? (
+                                <>◄ কমান</>
+                              ) : (
+                                <>+{hiddenCount} বাড়ান</>
+                              )}
+                            </button>
+                          </TH>
+                        )}
+                        <TH className="bg-white w-14 px-1 text-right text-xs md:text-sm">মোট</TH>
+                        <TH className="bg-white w-28 px-2 md:w-40 md:px-4 text-xs md:text-sm">নগদ জমা (৳)</TH>
                       </tr>
                     </THead>
                     <tbody>
                       {gridCustomers.map((c) => (
                         <TR key={c._id}>
                           <TD className="px-2 py-2 md:px-4">
-                            <p className="font-medium text-leaf-900 text-xs md:text-sm leading-tight">{c.name}</p>
+                            <p className="font-medium text-leaf-900 text-md md:text-lg leading-tight">{c.name}</p>
                             {c.due > 0 && (
-                              <p className="text-[10px] font-semibold text-rose-500">বাকি {taka(c.due)}</p>
+                              <div className="mt-0.5 flex items-center gap-1.5">
+                                <p className="text-sm font-semibold text-rose-500">বাকি {taka(c.due)}</p>
+                                <button
+                                  onClick={() => openPay({ customer: c, due: c.due })}
+                                  className="flex items-center gap-0.5 rounded-md bg-leaf-100 px-1.5 py-0.5 text-[12px] font-semibold text-leaf-700 hover:bg-leaf-200"
+                                >
+                                  <HandCoins className="h-2.5 w-2.5" />
+                                  টাকা আদায়
+                                </button>
+                              </div>
                             )}
                           </TD>
-                          {quickProducts.map((p) => {
+                          {visibleProducts.map((p) => {
                             const enabled = !c.quickProducts?.length || c.quickProducts.some((id) => String(id) === String(p._id));
                             return (
                             <TD key={p._id} className="px-1 py-2">
@@ -413,6 +480,8 @@ export default function SalesPage() {
                                   placeholder="0"
                                   value={grid[c._id]?.[p._id] ?? ''}
                                   onChange={(e) => setCell(c._id, p._id, e.target.value)}
+                                  onFocus={() => setFocusedCust(c)}
+                                  onBlur={() => setFocusedCust(null)}
                                   className="h-8 w-12 px-1 text-center text-xs md:h-9 md:w-14"
                                 />
                               ) : (
@@ -421,6 +490,7 @@ export default function SalesPage() {
                             </TD>
                             );
                           })}
+                          {quickProducts.length > VISIBLE_COLS && <TD />}
                           <TD className="num px-1 text-right text-xs font-semibold text-leaf-900 md:text-sm">{taka(rowTotal(c))}</TD>
                           <TD className="px-1 py-2 md:px-4">
                             <Input
@@ -430,6 +500,8 @@ export default function SalesPage() {
                               placeholder="0"
                               value={grid[c._id]?.paid ?? ''}
                               onChange={(e) => setCell(c._id, 'paid', e.target.value)}
+                              onFocus={() => setFocusedCust(c)}
+                              onBlur={() => setFocusedCust(null)}
                               className="h-8 w-full text-xs md:h-9 md:text-sm"
                             />
                           </TD>
@@ -437,9 +509,10 @@ export default function SalesPage() {
                       ))}
                       <TR className="bg-leaf-50/60">
                         <TD className="px-2 md:px-4 font-display text-leaf-900 text-xs md:text-sm">মোট</TD>
-                        {quickProducts.map((p) => (
+                        {visibleProducts.map((p) => (
                           <TD key={p._id} />
                         ))}
+                        {quickProducts.length > VISIBLE_COLS && <TD />}
                         <TD className="num px-1 text-right font-display text-sm md:text-lg text-leaf-900">{taka(gridTotals.total)}</TD>
                         <TD className="num px-1 md:px-4 font-semibold text-xs md:text-sm">{taka(gridTotals.paid)}</TD>
                       </TR>
@@ -504,6 +577,15 @@ export default function SalesPage() {
                           ) : <p className="text-sm text-stone-300">—</p>}
                         </div>
                       </div>
+                      {s.due > 0 && s.customer?._id && (
+                        <button
+                          onClick={() => openPay(s)}
+                          className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-leaf-200 py-1.5 text-xs font-semibold text-leaf-700 hover:bg-leaf-50"
+                        >
+                          <HandCoins className="h-3.5 w-3.5" />
+                          বাকি আদায় করুন
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -547,11 +629,19 @@ export default function SalesPage() {
                             ) : '—'}
                           </TD>
                           <TD>
-                            {isAdmin && (
-                              <Button variant="dangerGhost" size="icon" onClick={() => removeSale(s._id)}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
+                            <div className="flex items-center justify-end gap-1">
+                              {s.due > 0 && s.customer?._id && (
+                                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => openPay(s)}>
+                                  <HandCoins className="h-3.5 w-3.5" />
+                                  টাকা নিন
+                                </Button>
+                              )}
+                              {isAdmin && (
+                                <Button variant="dangerGhost" size="icon" onClick={() => removeSale(s._id)}>
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
                           </TD>
                         </TR>
                       ))}
@@ -575,6 +665,40 @@ export default function SalesPage() {
           {saving ? 'সেভ হচ্ছে…' : 'সেভ করুন'}
         </button>
       )}
+      {/* baki payment dialog */}
+      <Dialog open={!!payTarget} onOpenChange={(o) => !o && setPayTarget(null)}>
+        <DialogContent
+          title={`${payTarget?.customer?.name || ''} — বকেয়া আদায়`}
+          description={payTarget ? `এই বিক্রিতে বাকি: ${taka(payTarget.due)} সর্বমোট বাকি হতে পারে বেশি` : ''}
+        >
+          <div className="space-y-4">
+            <Field label="তারিখ">
+              <Input type="date" value={pay.date} onChange={(e) => setPay((p) => ({ ...p, date: e.target.value }))} />
+            </Field>
+            <Field label="টাকার পরিমাণ (৳)">
+              <Input
+                type="number"
+                step="1"
+                min="0"
+                placeholder="0"
+                value={pay.amount}
+                onChange={(e) => setPay((p) => ({ ...p, amount: e.target.value }))}
+              />
+            </Field>
+            <Field label="নোট (ঐচ্ছিক)">
+              <Input value={pay.note} onChange={(e) => setPay((p) => ({ ...p, note: e.target.value }))} />
+            </Field>
+            <div className="flex justify-end gap-2">
+              <DialogClose asChild>
+                <Button variant="ghost">বাতিল</Button>
+              </DialogClose>
+              <Button onClick={savePayment} loading={payBusy} disabled={!Number(pay.amount)}>
+                টাকা নিন
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

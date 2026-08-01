@@ -178,12 +178,9 @@ export function Badge({ tone = 'leaf', className, ...props }) {
 }
 
 /* -------------------------------- Table -------------------------------- */
-export function Table({ className, ...props }) {
-  return (
-    <div className="w-full overflow-x-auto">
-      <table className={cn('w-full text-sm', className)} {...props} />
-    </div>
-  );
+export function Table({ className, noWrapper = false, ...props }) {
+  const table = <table className={cn('w-full text-sm', className)} {...props} />;
+  return noWrapper ? table : <div className="w-full overflow-x-auto">{table}</div>;
 }
 export function THead({ className, ...props }) {
   return <thead className={cn('text-left text-sm text-leaf-900/60', className)} {...props} />;

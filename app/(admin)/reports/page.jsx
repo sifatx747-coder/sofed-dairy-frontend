@@ -4,6 +4,16 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Printer, Download } from 'lucide-react';
 import { api } from '@/lib/api';
+import {
+  bn, taka, bnDate, todayStr, monthStr, SHIFT_LABEL, PRODUCTION_LABEL,
+} from '@/lib/utils';
+import {
+  PageHeader, Card, CardHeader, CardTitle, CardContent, Button, Input, Tabs,
+  Table, THead, TH, TR, TD, PageLoader, StatCard, Badge,
+} from '@/components/ui';
+import {
+  Droplets, Banknote, Wallet, Tractor, TrendingUp, Users, BadgeDollarSign, ArrowRightLeft,
+} from 'lucide-react';
 
 /* ── CSV helpers ── */
 function csvRow(cells) {
@@ -32,6 +42,30 @@ function buildDailyCsv(data, date) {
   rows.push(['নগদ', 'বকেয়া আদায়', data.cash.duesCollected]);
   rows.push(['নগদ', 'মোট এসেছে', data.cash.totalIn]);
   rows.push(['নগদ', 'ফার্মকে দেওয়া', data.cash.farmPaid]);
+  // production rows
+  if (data.production?.rows?.length > 0) {
+    rows.push([]);
+    rows.push(['উৎপাদন', 'ধরন', 'শিফট', 'দুধ লেগেছে (কেজি)', 'তৈরি হয়েছে', 'একক']);
+    data.production.rows.forEach((r) =>
+      rows.push(['', PRODUCTION_LABEL[r.type] || r.type, r.shift === 'morning' ? 'সকাল' : 'বিকাল', r.milkUsedKg, r.outputQty || 0, r.outputUnit || ''])
+    );
+    rows.push(['উৎপাদন মোট', '', '', data.production.totalMilkKg, '', '']);
+  }
+  // adjustment rows
+  if (data.adjustments?.rows?.length > 0) {
+    rows.push([]);
+    rows.push(['সমন্বয়', 'ধরন', 'শিফট', 'পরিমাণ (কেজি)']);
+    data.adjustments.rows.forEach((r) =>
+      rows.push(['', r.type === 'home' ? 'ঘরের দুধ' : 'লিক/ফেরত', r.shift === 'morning' ? 'সকাল' : 'বিকাল', r.quantityKg])
+    );
+  }
+  // recon
+  if (data.recon?.total) {
+    rows.push([]);
+    rows.push(['দুধের ব্যালেন্স', 'সংগ্রহ', 'বিক্রি', 'উৎপাদন', 'ঘরের', 'লিক/ফেরত', 'ব্যালেন্স']);
+    const t = data.recon.total;
+    rows.push(['সারাদিন', t.collected, t.sold, t.productionMilk, t.home, t.leak, t.balance]);
+  }
   rows.push([]);
   rows.push(['ফার্ম সংগ্রহ', 'ফার্ম', 'শিফট', 'কেজি', 'দর', 'টাকা']);
   ['morning', 'afternoon'].forEach((shift) =>
@@ -74,25 +108,14 @@ function buildMonthlyCsv(data, label) {
   rows.push([]);
   rows.push(['উৎপাদন', 'ধরন', 'দুধ ব্যবহার (কেজি)', 'আউটপুট']);
   data.production.forEach((p) =>
-    rows.push(['', p.type, p.milkUsedKg, p.outputQty ? `${p.outputQty} ${p.outputUnit}` : ''])
+    rows.push(['', PRODUCTION_LABEL[p.type] || p.type, p.milkUsedKg, p.outputQty ? `${p.outputQty} ${p.outputUnit}` : ''])
   );
   rows.push([]);
   rows.push(['কর্মচারী জমা', 'নাম', 'টাকা']);
   data.deposits.forEach((d) => rows.push(['', d.name, d.amount]));
   return rows;
 }
-import {
-  bn, taka, bnDate, todayStr, monthStr, SHIFT_LABEL, PRODUCTION_LABEL,
-} from '@/lib/utils';
-import {
-  PageHeader, Card, CardHeader, CardTitle, CardContent, Button, Input, Tabs,
-  Table, THead, TH, TR, TD, PageLoader, StatCard, Badge,
-} from '@/components/ui';
-import {
-  Droplets, Banknote, Wallet, Tractor, TrendingUp, Users, BadgeDollarSign, ArrowRightLeft,
-} from 'lucide-react';
 
-/* ── dashboard-style quick panel ── */
 function QRow({ icon: Icon, label, value, tone = 'default' }) {
   const colors = {
     default: 'text-leaf-900', ghee: 'text-ghee-700', rose: 'text-rose-600',
