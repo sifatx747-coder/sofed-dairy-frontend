@@ -15,10 +15,10 @@ const buttonVariants = {
   dangerGhost: 'text-rose-600 hover:bg-rose-50',
 };
 const buttonSizes = {
-  default: 'h-10 px-4 text-sm',
-  sm: 'h-8 px-3 text-xs',
-  lg: 'h-12 px-6 text-base',
-  icon: 'h-9 w-9 p-0',
+  default: 'h-11 px-5 text-sm',
+  sm: 'h-9 px-3.5 text-sm',
+  lg: 'h-13 px-7 text-base',
+  icon: 'h-10 w-10 p-0',
 };
 
 export const Button = React.forwardRef(function Button(
@@ -51,7 +51,7 @@ export const Input = React.forwardRef(function Input({ className, ...props }, re
     <input
       ref={ref}
       className={cn(
-        'h-10 w-full rounded-xl border border-leaf-200/80 bg-surface px-3 text-sm text-stone-800',
+        'h-11 w-full rounded-xl border border-leaf-200/80 bg-surface px-3.5 text-base text-stone-800',
         'placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-leaf-500/60 focus:border-leaf-400',
         'disabled:opacity-50',
         className
@@ -76,7 +76,7 @@ export const Textarea = React.forwardRef(function Textarea({ className, ...props
 });
 
 export function Label({ className, ...props }) {
-  return <label className={cn('mb-1.5 block text-xs font-semibold text-leaf-900/80', className)} {...props} />;
+  return <label className={cn('mb-1.5 block text-sm font-semibold text-leaf-900/80', className)} {...props} />;
 }
 
 export function Field({ label, children, className, required }) {
@@ -96,7 +96,7 @@ export const Select = React.forwardRef(function Select({ className, children, ..
     <select
       ref={ref}
       className={cn(
-        'h-10 w-full cursor-pointer rounded-xl border border-leaf-200/80 bg-surface px-3 text-sm',
+        'h-11 w-full cursor-pointer rounded-xl border border-leaf-200/80 bg-surface px-3.5 text-base',
         'focus:outline-none focus:ring-2 focus:ring-leaf-500/60 focus:border-leaf-400',
         className
       )}
@@ -168,7 +168,7 @@ export function Badge({ tone = 'leaf', className, ...props }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap',
+        'inline-flex items-center gap-1 rounded-full px-3 py-0.5 text-xs font-semibold whitespace-nowrap',
         badgeTones[tone],
         className
       )}
@@ -186,16 +186,16 @@ export function Table({ className, ...props }) {
   );
 }
 export function THead({ className, ...props }) {
-  return <thead className={cn('text-left text-xs text-leaf-900/60', className)} {...props} />;
+  return <thead className={cn('text-left text-sm text-leaf-900/60', className)} {...props} />;
 }
 export function TH({ className, ...props }) {
-  return <th className={cn('px-3 py-2 font-semibold whitespace-nowrap', className)} {...props} />;
+  return <th className={cn('px-4 py-2.5 font-semibold whitespace-nowrap', className)} {...props} />;
 }
 export function TR({ className, ...props }) {
   return <tr className={cn('border-t border-leaf-100', className)} {...props} />;
 }
 export function TD({ className, ...props }) {
-  return <td className={cn('px-3 py-2.5 align-middle whitespace-nowrap', className)} {...props} />;
+  return <td className={cn('px-4 py-3 align-middle whitespace-nowrap', className)} {...props} />;
 }
 
 /* -------------------------------- Dialog ------------------------------- */
@@ -210,26 +210,26 @@ export function DialogContent({ className, children, title, description, wide = 
       <DialogPrimitive.Content
         className={cn(
           'fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2',
-          wide ? 'max-w-2xl' : 'max-w-md',
-          'max-h-[88vh] overflow-y-auto rounded-xl2 bg-surface p-6 shadow-lift',
+          wide ? 'max-w-2xl' : 'max-w-lg',
+          'max-h-[90vh] overflow-y-auto rounded-xl2 bg-surface p-7 shadow-lift',
           className
         )}
       >
-        <div className="mb-4 flex items-start justify-between gap-4">
+        <div className="mb-5 flex items-start justify-between gap-4">
           <div>
             {title && (
-              <DialogPrimitive.Title className="font-display text-xl text-leaf-900">
+              <DialogPrimitive.Title className="font-display text-2xl text-leaf-900">
                 {title}
               </DialogPrimitive.Title>
             )}
             {description && (
-              <DialogPrimitive.Description className="mt-1 text-sm text-stone-500">
+              <DialogPrimitive.Description className="mt-1.5 text-base text-stone-500">
                 {description}
               </DialogPrimitive.Description>
             )}
           </div>
-          <DialogPrimitive.Close className="rounded-lg p-1.5 text-stone-400 hover:bg-leaf-50 hover:text-leaf-800">
-            <X className="h-4 w-4" />
+          <DialogPrimitive.Close className="rounded-lg p-2 text-stone-400 hover:bg-leaf-50 hover:text-leaf-800">
+            <X className="h-5 w-5" />
           </DialogPrimitive.Close>
         </div>
         {children}
@@ -263,10 +263,10 @@ export function Tabs({ items, value, onChange, className }) {
 /* ----------------------------- Page pieces ----------------------------- */
 export function PageHeader({ title, desc, children }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h1 className="font-display text-2xl text-leaf-900 md:text-3xl">{title}</h1>
-        {desc && <p className="mt-1 text-sm text-stone-500">{desc}</p>}
+        <h1 className="font-display text-3xl text-leaf-900 md:text-4xl">{title}</h1>
+        {desc && <p className="mt-1.5 text-base text-stone-500">{desc}</p>}
       </div>
       {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
     </div>
@@ -284,13 +284,13 @@ export function StatCard({ icon: Icon, label, value, sub, tone = 'leaf' }) {
     <Card className="p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-semibold text-stone-500">{label}</p>
-          <p className="num mt-1 truncate font-display text-2xl text-leaf-900">{value}</p>
-          {sub && <p className="mt-1 text-xs text-stone-400">{sub}</p>}
+          <p className="text-sm font-semibold text-stone-500">{label}</p>
+          <p className="num mt-1 truncate font-display text-3xl text-leaf-900">{value}</p>
+          {sub && <p className="mt-1 text-sm text-stone-400">{sub}</p>}
         </div>
         {Icon && (
-          <span className={cn('shrink-0 rounded-xl p-2.5', statTones[tone])}>
-            <Icon className="h-5 w-5" />
+          <span className={cn('shrink-0 rounded-xl p-3', statTones[tone])}>
+            <Icon className="h-6 w-6" />
           </span>
         )}
       </div>
@@ -318,7 +318,7 @@ export function Pagination({ page, pages, total, onPage, className }) {
   if (!pages || pages <= 1) return null;
   return (
     <div className={cn('flex items-center justify-between gap-3 pt-4', className)}>
-      <p className="text-xs text-stone-500">
+      <p className="text-sm text-stone-500">
         পৃষ্ঠা {bn(page)} / {bn(pages)}
         {total != null && <span className="text-stone-400"> · মোট {bn(total)}টি</span>}
       </p>

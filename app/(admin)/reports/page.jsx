@@ -257,7 +257,7 @@ function MonthlyReport({ data }) {
           />
         )}
         <StatCard
-          label="আনুমানিক লাভ (মোটা হিসাব)"
+          label="আনুমানিক লাভ (মোট হিসাব)"
           value={taka(data.profitEstimate)}
           sub="বিক্রি − দুধ কেনা · অন্যান্য খরচ বাদ যায়নি"
           tone={data.profitEstimate >= 0 ? 'leaf' : 'rose'}

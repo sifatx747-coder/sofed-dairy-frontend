@@ -4,16 +4,233 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import {
-  Droplets, Banknote, Wallet, Tractor, UserCog, ClipboardList, ArrowLeft,
+  Droplets, Banknote, Wallet, Tractor, UserCog, ClipboardList, ArrowLeft, HandCoins,
+  TrendingUp, Users, BadgeDollarSign, CalendarDays, CalendarRange, RotateCcw, Infinity,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 import { api } from '@/lib/api';
-import { bn, taka, bnDate, todayStr } from '@/lib/utils';
-import { PageHeader, StatCard, Card, CardHeader, CardTitle, CardContent, PageLoader, Button, Input } from '@/components/ui';
+import { bn, taka, bnDate, todayStr, monthStr } from '@/lib/utils';
+import {
+  PageHeader, StatCard, Card, CardHeader, CardTitle, CardContent,
+  PageLoader, Spinner, Button, Input,
+} from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 
+function currentWeekRange() {
+  const today = new Date();
+  const day = today.getDay();
+  const mon = new Date(today);
+  mon.setDate(today.getDate() + (day === 0 ? -6 : 1 - day));
+  return { from: mon.toLocaleDateString('en-CA'), to: todayStr() };
+}
+
+/* ── stat row inside a panel ── */
+function Row({ icon: Icon, label, value, tone = 'default' }) {
+  const colors = {
+    default: 'text-leaf-900',
+    ghee: 'text-ghee-700',
+    rose: 'text-rose-600',
+    stone: 'text-stone-500',
+    leaf: 'text-leaf-700',
+  };
+  return (
+    <div className="flex items-center justify-between gap-3 py-3 border-b border-leaf-100 last:border-0">
+      <div className="flex items-center gap-2.5 min-w-0">
+        <Icon className="h-5 w-5 shrink-0 text-stone-400" />
+        <span className="text-base text-stone-600 truncate">{label}</span>
+      </div>
+      <span className={`num text-base font-semibold shrink-0 ${colors[tone]}`}>{value}</span>
+    </div>
+  );
+}
+
+/* ── panel wrapper ── */
+function Panel({ title, icon: Icon, iconColor = 'text-leaf-600', border = 'border-leaf-200', bg = 'bg-leaf-50/40', controls, loading, children }) {
+  return (
+    <div className={`rounded-xl2 border ${border} ${bg} p-5`}>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Icon className={`h-5 w-5 ${iconColor}`} />
+          <span className="font-display text-lg font-semibold text-leaf-900">{title}</span>
+        </div>
+        {controls}
+      </div>
+      {loading
+        ? <div className="flex justify-center py-6"><Spinner /></div>
+        : children
+      }
+    </div>
+  );
+}
+
+/* ── daily panel ── */
+function DailyPanel({ data, date, setDate }) {
+  const due = data.sales.total - data.sales.paid;
+  const duesAdai = data.cashIn - data.sales.paid;
+  return (
+    <Panel
+      title="আজকের হিসাব"
+      icon={CalendarDays}
+      border="border-leaf-200"
+      bg="bg-leaf-50/40"
+      controls={
+        <div className="flex items-center gap-1.5">
+          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-8 w-auto text-xs px-2" />
+          {date !== todayStr() && (
+            <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => setDate(todayStr())}>আজ</Button>
+          )}
+        </div>
+      }
+    >
+      <Row icon={Droplets} label="দুধ সংগ্রহ" value={`${bn(data.collections.kg)} কেজি`} />
+      <Row icon={Droplets} label="সকাল / বিকাল" value={`${bn(data.collections.morning.kg)} / ${bn(data.collections.afternoon.kg)} কেজি`} tone="stone" />
+      <Row icon={Banknote} label="বিক্রি (মোট)" value={taka(data.sales.total)} />
+      <Row icon={Banknote} label="বিক্রি (দুধ)" value={`${bn(data.sales.kg)} কেজি`} tone="stone" />
+      <Row icon={Wallet} label="নগদ এসেছে" value={taka(data.cashIn)} tone="ghee" />
+      <Row icon={BadgeDollarSign} label="নতুন বাকি" value={taka(due)} tone="rose" />
+      <Row icon={Users} label="বকেয়া আদায়" value={taka(duesAdai)} tone="leaf" />
+    </Panel>
+  );
+}
+
+/* ── monthly panel ── */
+function MonthlyPanel() {
+  const [month, setMonth] = useState(monthStr());
+  const [input, setInput] = useState(monthStr());
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const load = (m) => {
+    setLoading(true); setData(null);
+    api(`/reports/monthly?month=${m}`)
+      .then(setData).catch((e) => toast.error(e.message)).finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(month); }, [month]);
+
+  const apply = () => setMonth(input);
+  const reset = () => { const m = monthStr(); setInput(m); setMonth(m); };
+
+  const label = (() => {
+    try { return new Date(`${month}-01T00:00:00`).toLocaleDateString('bn-BD', { month: 'long', year: 'numeric' }); }
+    catch { return month; }
+  })();
+
+  const empTotal = data?.deposits?.reduce((s, x) => s + x.amount, 0) ?? 0;
+
+  return (
+    <Panel
+      title={`মাসিক — ${label}`}
+      icon={CalendarRange}
+      iconColor="text-ghee-600"
+      border="border-ghee-200"
+      bg="bg-ghee-50/30"
+      loading={loading}
+      controls={
+        <div className="flex items-center gap-1.5">
+          <Input type="month" value={input} onChange={(e) => setInput(e.target.value)} className="h-8 w-auto text-xs px-2" />
+          <Button size="sm" className="h-8 px-2.5 text-xs" onClick={apply} disabled={loading}>দেখুন</Button>
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={reset} disabled={loading}><RotateCcw className="h-3 w-3" /></Button>
+        </div>
+      }
+    >
+      {data && <>
+        <Row icon={Droplets} label="দুধ সংগ্রহ" value={`${bn(data.collections.kg)} কেজি`} />
+        <Row icon={Tractor} label="সংগ্রহ খরচ" value={taka(data.collections.amount)} tone="stone" />
+        <Row icon={Banknote} label="বিক্রি (মোট)" value={taka(data.sales.total)} />
+        <Row icon={Wallet} label="নগদ এসেছে" value={taka(data.cashIn)} tone="ghee" />
+        <Row icon={BadgeDollarSign} label="বাকি" value={taka(data.sales.due)} tone="rose" />
+        <Row icon={Users} label="কর্মচারী জমা" value={taka(empTotal)} tone="stone" />
+        <Row icon={TrendingUp} label="আনুমানিক লাভ" value={taka(data.profitEstimate)} tone="leaf" />
+      </>}
+    </Panel>
+  );
+}
+
+/* ── weekly panel ── */
+function WeeklyPanel() {
+  const def = currentWeekRange();
+  const [from, setFrom] = useState(def.from);
+  const [to, setTo] = useState(def.to);
+  const [pendingFrom, setPendingFrom] = useState(def.from);
+  const [pendingTo, setPendingTo] = useState(def.to);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const load = (f, t) => {
+    setLoading(true); setData(null);
+    api(`/reports/range?from=${f}&to=${t}`)
+      .then(setData).catch((e) => toast.error(e.message)).finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(from, to); }, [from, to]);
+
+  const apply = () => { if (pendingFrom <= pendingTo) { setFrom(pendingFrom); setTo(pendingTo); } };
+  const reset = () => {
+    const r = currentWeekRange();
+    setPendingFrom(r.from); setPendingTo(r.to);
+    setFrom(r.from); setTo(r.to);
+  };
+
+  const empTotal = data?.deposits?.reduce((s, x) => s + x.amount, 0) ?? 0;
+
+  return (
+    <Panel
+      title="সাপ্তাহিক হিসাব"
+      icon={CalendarDays}
+      border="border-leaf-200"
+      bg="bg-leaf-50/40"
+      loading={loading}
+      controls={
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Input type="date" value={pendingFrom} onChange={(e) => setPendingFrom(e.target.value)} className="h-8 w-auto text-xs px-2" />
+          <span className="text-stone-400 text-xs">—</span>
+          <Input type="date" value={pendingTo} onChange={(e) => setPendingTo(e.target.value)} className="h-8 w-auto text-xs px-2" />
+          <Button size="sm" className="h-8 px-2.5 text-xs" onClick={apply} disabled={loading || pendingFrom > pendingTo}>দেখুন</Button>
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={reset} disabled={loading}><RotateCcw className="h-3 w-3" /></Button>
+        </div>
+      }
+    >
+      {data && <>
+        {(from !== def.from || to !== def.to) && (
+          <p className="mb-2 text-xs text-stone-400">{bnDate(from)} – {bnDate(to)}</p>
+        )}
+        <Row icon={Droplets} label="দুধ সংগ্রহ" value={`${bn(data.collections.kg)} কেজি`} />
+        <Row icon={Tractor} label="সংগ্রহ খরচ" value={taka(data.collections.amount)} tone="stone" />
+        <Row icon={Banknote} label="বিক্রি (মোট)" value={taka(data.sales.total)} />
+        <Row icon={Wallet} label="নগদ এসেছে" value={taka(data.cashIn)} tone="ghee" />
+        <Row icon={BadgeDollarSign} label="বাকি" value={taka(data.sales.due)} tone="rose" />
+        <Row icon={Users} label="কর্মচারী জমা" value={taka(empTotal)} tone="stone" />
+        <Row icon={TrendingUp} label="আনুমানিক লাভ" value={taka(data.profitEstimate)} tone="leaf" />
+      </>}
+    </Panel>
+  );
+}
+
+/* ── all-time panel ── */
+function AllTimePanel({ data }) {
+  return (
+    <Panel
+      title="সর্বকালীন সারসংক্ষেপ"
+      icon={Infinity}
+      iconColor="text-stone-500"
+      border="border-stone-200"
+      bg="bg-stone-50/40"
+    >
+      <Row icon={Droplets} label="মোট সংগ্রহ খরচ" value={taka(data.allTime.collectionAmount)} tone="stone" />
+      <Row icon={Banknote} label="মোট বিক্রি" value={taka(data.allTime.salesTotal)} />
+      <Row icon={TrendingUp} label="আনুমানিক মোট লাভ" value={taka(data.allTime.profitEstimate)} tone="leaf" />
+      <Row icon={Wallet} label="দোকানে বাকি (পাবো)" value={taka(data.dues.customers)} tone="rose" />
+      <Row icon={Tractor} label="ফার্মকে দিতে হবে" value={taka(data.dues.farms)} tone="ghee" />
+      <Row icon={HandCoins} label="মালিকের হাতে নগদ" value={taka(data.adminCashInHand)} tone="leaf" />
+      <Row icon={UserCog} label="কর্মচারীর হাতে" value={taka(data.employeesInHand)} tone="stone" />
+    </Panel>
+  );
+}
+
+/* ── main ── */
 export default function DashboardPage() {
   const { user } = useAuth();
   const [date, setDate] = useState(todayStr());
@@ -22,8 +239,7 @@ export default function DashboardPage() {
   useEffect(() => {
     setData(null);
     api(`/reports/dashboard?date=${date}`)
-      .then(setData)
-      .catch((err) => toast.error(err.message));
+      .then(setData).catch((e) => toast.error(e.message));
   }, [date]);
 
   if (!data) return <PageLoader />;
@@ -39,10 +255,6 @@ export default function DashboardPage() {
         title={`শুভদিন, ${user?.name || ''}!`}
         desc={`${bnDate(data.today)} — এক নজরে হিসাব`}
       >
-        <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-auto" />
-        {date !== todayStr() && (
-          <Button variant="ghost" size="sm" onClick={() => setDate(todayStr())}>আজ</Button>
-        )}
         <Link href="/collections"><Button variant="outline">দুধ সংগ্রহ</Button></Link>
         <Link href="/sales"><Button>বিক্রি</Button></Link>
       </PageHeader>
@@ -60,53 +272,48 @@ export default function DashboardPage() {
         </Link>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <StatCard
-          icon={Droplets}
-          label="আজ দুধ সংগ্রহ"
-          value={`${bn(data.collections.kg)} কেজি`}
-          sub={`সকাল ${bn(data.collections.morning.kg)} + বিকাল ${bn(data.collections.afternoon.kg)} · দাম ${taka(data.collections.amount)}`}
-        />
-        <StatCard
-          icon={Banknote}
-          label="আজ বিক্রি"
-          value={taka(data.sales.total)}
-          sub={`দুধ ${bn(data.sales.kg)} কেজি · নগদ ${taka(data.sales.paid)}`}
-        />
-        <StatCard
-          icon={Wallet}
-          label="আজ নগদ এসেছে"
-          value={taka(data.cashIn)}
-          sub="বিক্রির নগদ + বকেয়া আদায়"
-          tone="ghee"
-        />
-        <StatCard
-          icon={Wallet}
-          label="দোকানে বাকি (পাবো)"
-          value={taka(data.dues.customers)}
-          tone="rose"
-        />
-        <StatCard
-          icon={Tractor}
-          label="ফার্মকে দিতে হবে"
-          value={taka(data.dues.farms)}
-          tone="ghee"
-        />
-        <StatCard
-          icon={UserCog}
-          label="কর্মচারীর হাতে"
-          value={taka(data.employeesInHand)}
-          sub="নগদ তুলেছে, এখনো জমা দেয়নি"
-          tone="stone"
-        />
+      {/* Row 1: Daily | Monthly */}
+      <div className="grid gap-5 lg:grid-cols-2">
+        <DailyPanel data={data} date={date} setDate={setDate} />
+        <MonthlyPanel />
       </div>
 
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>গত ৭ দিন — সংগ্রহ বনাম বিক্রি (কেজি)</CardTitle>
-        </CardHeader>
+      {/* Row 2: Weekly | All-time */}
+      <div className="mt-5 grid gap-5 lg:grid-cols-2">
+        <WeeklyPanel />
+        <AllTimePanel data={data} />
+      </div>
+
+      {/* Recent deposits */}
+      {data.recentDeposits?.length > 0 && (
+        <Card className="mt-5">
+          <CardHeader><CardTitle>সাম্প্রতিক কর্মচারী জমা</CardTitle></CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {data.recentDeposits.map((d) => (
+                <div key={d._id} className="flex items-center justify-between rounded-lg border border-leaf-100 px-3 py-2 text-sm">
+                  <span className="text-stone-600">
+                    <span className="font-medium text-leaf-900">{d.employeeName}</span>
+                    <span className="mx-1.5 text-stone-300">·</span>
+                    {bnDate(d.date)}
+                    {d.note && <span className="text-stone-400"> · {d.note}</span>}
+                  </span>
+                  <span className="num font-semibold text-leaf-700">{taka(d.amount)}</span>
+                </div>
+              ))}
+            </div>
+            <Link href="/employees" className="mt-3 block text-center text-xs text-leaf-600 hover:underline">
+              সব কর্মচারীর হিসাব দেখুন →
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Chart */}
+      <Card className="mt-5">
+        <CardHeader><CardTitle>গত ৭ দিন — সংগ্রহ বনাম বিক্রি (কেজি)</CardTitle></CardHeader>
         <CardContent>
-          <div className="h-72 w-full">
+          <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
                 <defs>
@@ -123,7 +330,7 @@ export default function DashboardPage() {
                 <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#57534e' }} tickLine={false} axisLine={false} />
                 <YAxis tick={{ fontSize: 12, fill: '#57534e' }} tickLine={false} axisLine={false} />
                 <Tooltip
-                  formatter={(value, name) => [`${bn(value)} কেজি`, name]}
+                  formatter={(v, n) => [`${bn(v)} কেজি`, n]}
                   labelStyle={{ fontWeight: 600 }}
                   contentStyle={{ borderRadius: 12, border: '1px solid #DCEEE3' }}
                 />

@@ -57,6 +57,11 @@ export default function SalesPage() {
     if (isEmployee && user?.employee) setSellerKey(String(user.employee));
   }, [isEmployee, user]);
 
+  const reloadCustomers = () =>
+    api('/customers')
+      .then((c) => setCustomers(c.filter((x) => x.active)))
+      .catch(() => {});
+
   const loadDay = (d) =>
     api(`/sales?date=${d}`)
       .then(setDaySales)
@@ -66,7 +71,11 @@ export default function SalesPage() {
     loadDay(date);
   }, [date]);
 
-  const quickProducts = useMemo(() => (products || []).filter((p) => p.quickSale), [products]);
+  const CATEGORY_ORDER = { milk: 0, doi: 1, ghee: 2, ponir: 3, other: 4 };
+  const quickProducts = useMemo(
+    () => (products || []).filter((p) => p.quickSale).sort((a, b) => (CATEGORY_ORDER[a.category] ?? 99) - (CATEGORY_ORDER[b.category] ?? 99)),
+    [products]
+  );
   const gridCustomers = useMemo(
     () => (customers || []).filter((c) => c.type !== 'individual'),
     [customers]
@@ -120,6 +129,7 @@ export default function SalesPage() {
       }));
       const saved = await api('/sales/batch', { method: 'POST', body: { date, shift, sellerKey, rows } });
       setDaySales(saved);
+      reloadCustomers();
       toast.success(`${SHIFT_LABEL[shift]}ের বিক্রি সেভ হয়েছে`);
     } catch (err) {
       toast.error(err.message);
@@ -172,6 +182,7 @@ export default function SalesPage() {
       setOpen(false);
       setForm({ customer: '', items: [emptyItem()], paid: '', note: '' });
       loadDay(date);
+      reloadCustomers();
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -318,7 +329,7 @@ export default function SalesPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label={`নগদ নিলাম (মোট ${taka(formTotal)})`}>
+                <Field label={`নগদ নিলাম (মোট ${taka(formTotal)}${formCustomer?.due > 0 ? ` · আগের বাকি ${taka(formCustomer.due)}` : ''})`}>
                   <Input
                     type="number"
                     step="1"
@@ -383,23 +394,30 @@ export default function SalesPage() {
                       <TR key={c._id}>
                         <TD>
                           <p className="font-medium text-leaf-900">{c.name}</p>
-                          <p className="text-[11px] text-stone-400">
-                            {quickProducts.map((p) => `${p.name} ৳${bn(rateFor(c, p._id, p.defaultRate))}`).join(' · ')}
-                          </p>
+                          {c.due > 0 && (
+                            <p className="text-[11px] font-semibold text-rose-500">বাকি {taka(c.due)}</p>
+                          )}
                         </TD>
-                        {quickProducts.map((p) => (
+                        {quickProducts.map((p) => {
+                          const enabled = !c.quickProducts?.length || c.quickProducts.some((id) => String(id) === String(p._id));
+                          return (
                           <TD key={p._id}>
-                            <Input
-                              type="number"
-                              step="0.1"
-                              min="0"
-                              placeholder="0"
-                              value={grid[c._id]?.[p._id] ?? ''}
-                              onChange={(e) => setCell(c._id, p._id, e.target.value)}
-                              className="h-9"
-                            />
+                            {enabled ? (
+                              <Input
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                placeholder="0"
+                                value={grid[c._id]?.[p._id] ?? ''}
+                                onChange={(e) => setCell(c._id, p._id, e.target.value)}
+                                className="h-9"
+                              />
+                            ) : (
+                              <span className="block text-center text-stone-300">—</span>
+                            )}
                           </TD>
-                        ))}
+                          );
+                        })}
                         <TD className="num text-right font-semibold text-leaf-900">{taka(rowTotal(c))}</TD>
                         <TD>
                           <Input
@@ -476,7 +494,11 @@ export default function SalesPage() {
                       <TD className="num text-right font-semibold">{taka(s.total)}</TD>
                       <TD className="num text-right text-leaf-700">{taka(s.paid)}</TD>
                       <TD className="num text-right">
-                        {s.due > 0 ? <span className="font-semibold text-rose-600">{taka(s.due)}</span> : '—'}
+                        {s.due > 0 ? (
+                          <span className="font-semibold text-rose-600">{taka(s.due)}</span>
+                        ) : s.due < 0 ? (
+                          <span className="font-semibold text-leaf-600">অগ্রিম {taka(-s.due)}</span>
+                        ) : '—'}
                       </TD>
                       <TD>
                         {isAdmin && (

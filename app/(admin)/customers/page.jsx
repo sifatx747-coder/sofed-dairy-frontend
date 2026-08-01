@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { Users, Plus, Pencil, HandCoins, NotebookText, Tags, KeyRound, BadgeCheck, Clock } from 'lucide-react';
+import { Users, Plus, Pencil, HandCoins, NotebookText, Tags, KeyRound, BadgeCheck, Clock, LayoutGrid } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { bn, taka, todayStr, CUSTOMER_TYPES, CUSTOMER_TYPE_LABEL } from '@/lib/utils';
@@ -23,6 +23,8 @@ export default function CustomersPage() {
   const [editTarget, setEditTarget] = useState(null); // null | 'new' | customer
   const [payTarget, setPayTarget] = useState(null);
   const [rateTarget, setRateTarget] = useState(null);
+  const [qpTarget, setQpTarget] = useState(null);
+  const [qpSet, setQpSet] = useState(new Set());
   const [pwTarget, setPwTarget] = useState(null);
   const [pwValue, setPwValue] = useState('');
   const [form, setForm] = useState(emptyForm);
@@ -54,6 +56,28 @@ export default function CustomersPage() {
     setPay({ date: todayStr(), amount: '', note: '' });
     setPayTarget(c);
   };
+  const quickSaleProducts = products.filter((p) => p.quickSale);
+
+  const openQp = (c) => {
+    const ids = c.quickProducts?.length ? c.quickProducts.map(String) : quickSaleProducts.map((p) => String(p._id));
+    setQpSet(new Set(ids));
+    setQpTarget(c);
+  };
+
+  const saveQp = async () => {
+    setBusy(true);
+    try {
+      await api(`/customers/${qpTarget._id}/quick-products`, { method: 'PUT', body: { productIds: [...qpSet] } });
+      toast.success(`${qpTarget.name}-এর পণ্য সেভ হয়েছে`);
+      setQpTarget(null);
+      load();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const openRates = (c) => {
     const m = {};
     for (const p of products) {
@@ -234,6 +258,11 @@ export default function CustomersPage() {
                           টাকা নিন
                         </Button>
                         {isAdmin && (
+                          <Button variant="ghost" size="icon" onClick={() => openQp(c)} title="দ্রুত বিক্রির পণ্য">
+                            <LayoutGrid className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {isAdmin && (
                           <Button variant="ghost" size="icon" onClick={() => openRates(c)} title="বিশেষ রেট">
                             <Tags className="h-4 w-4" />
                           </Button>
@@ -376,6 +405,47 @@ export default function CustomersPage() {
               </DialogClose>
               <Button onClick={saveRates} loading={busy}>
                 রেট সেভ করুন
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* quick-sale products dialog */}
+      <Dialog open={!!qpTarget} onOpenChange={(o) => !o && setQpTarget(null)}>
+        <DialogContent
+          title={`${qpTarget?.name || ''} — দ্রুত বিক্রির পণ্য`}
+          description="যে পণ্যগুলো চেক করবেন, সেগুলোর ইনপুট বিক্রি পাতায় দেখাবে"
+        >
+          <div className="space-y-3">
+            {quickSaleProducts.length === 0 ? (
+              <p className="text-sm text-stone-400">কোনো দ্রুত-বিক্রি পণ্য নেই</p>
+            ) : (
+              quickSaleProducts.map((p) => (
+                <label key={p._id} className="flex cursor-pointer items-center gap-3">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-leaf-600"
+                    checked={qpSet.has(String(p._id))}
+                    onChange={(e) => {
+                      setQpSet((s) => {
+                        const n = new Set(s);
+                        e.target.checked ? n.add(String(p._id)) : n.delete(String(p._id));
+                        return n;
+                      });
+                    }}
+                  />
+                  <span className="text-sm font-medium text-leaf-900">{p.name}</span>
+                  <span className="text-[11px] text-stone-400">{p.unit}</span>
+                </label>
+              ))
+            )}
+            <div className="flex justify-end gap-2 pt-2">
+              <DialogClose asChild>
+                <Button variant="ghost">বাতিল</Button>
+              </DialogClose>
+              <Button onClick={saveQp} loading={busy} disabled={quickSaleProducts.length === 0}>
+                সেভ করুন
               </Button>
             </div>
           </div>

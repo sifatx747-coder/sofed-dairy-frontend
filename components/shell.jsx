@@ -62,13 +62,13 @@ function NavLinks({ nav, onNavigate }) {
             href={href}
             onClick={onNavigate}
             className={cn(
-              'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+              'flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium transition-colors',
               active
                 ? 'bg-leaf-700/80 text-white shadow-sm'
                 : 'text-leaf-100/70 hover:bg-leaf-800/70 hover:text-white'
             )}
           >
-            <Icon className="h-[18px] w-[18px]" />
+            <Icon className="h-5 w-5" />
             {label}
           </Link>
         );
@@ -111,16 +111,16 @@ function Shell({ nav, roles, children }) {
     <div className="flex h-full flex-col p-4">
       <Brand />
       <NavLinks nav={visibleNav} onNavigate={onNavigate} />
-      <div className="mt-auto rounded-xl bg-leaf-800/60 p-3">
-        <p className="truncate text-sm font-semibold text-white">{user.name}</p>
-        <p className="truncate text-xs text-leaf-200/70">
+      <div className="mt-auto rounded-xl bg-leaf-800/60 p-3.5">
+        <p className="truncate text-base font-semibold text-white">{user.name}</p>
+        <p className="truncate text-sm text-leaf-200/70">
           {user.phone} · {ROLE_LABEL[user.role] || ''}
         </p>
         <button
           onClick={handleLogout}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-leaf-900/70 px-3 py-2 text-xs font-medium text-leaf-100 hover:bg-leaf-900"
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-leaf-900/70 px-3 py-2.5 text-sm font-medium text-leaf-100 hover:bg-leaf-900"
         >
-          <LogOut className="h-3.5 w-3.5" />
+          <LogOut className="h-4 w-4" />
           লগ আউট
         </button>
       </div>
@@ -152,18 +152,18 @@ function Shell({ nav, roles, children }) {
 
       <div className="lg:pl-64">
         {/* topbar */}
-        <header className="no-print sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-leaf-100 bg-canvas/90 px-4 py-3 backdrop-blur md:px-8">
+        <header className="no-print sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-leaf-100 bg-canvas/90 px-4 py-3.5 backdrop-blur md:px-8">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setOpen(true)}
               className="rounded-lg p-2 text-leaf-800 hover:bg-leaf-100 lg:hidden"
             >
-              <Menu className="h-5 w-5" />
+              <Menu className="h-6 w-6" />
             </button>
-            <p className="text-sm text-stone-500">{bnDateFull(todayStr())}</p>
+            <p className="text-base text-stone-500">{bnDateFull(todayStr())}</p>
           </div>
-          <div className="hidden items-center gap-2 text-sm text-stone-600 sm:flex">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-leaf-100 font-semibold text-leaf-800">
+          <div className="hidden items-center gap-2 text-base text-stone-600 sm:flex">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-leaf-100 font-semibold text-leaf-800">
               {user.name?.[0] || '?'}
             </span>
             {user.name}

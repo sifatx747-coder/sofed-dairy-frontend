@@ -1,19 +1,19 @@
 import './globals.css';
-import { Hind_Siliguri, Tiro_Bangla } from 'next/font/google';
+import { Noto_Sans_Bengali, Baloo_Da_2 } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { AuthProvider } from '@/lib/auth';
 
-const hind = Hind_Siliguri({
-  subsets: ['bengali', 'latin'],
+const noto = Noto_Sans_Bengali({
+  subsets: ['bengali'],
   weight: ['300', '400', '500', '600', '700'],
-  variable: '--font-hind',
+  variable: '--font-noto',
   display: 'swap',
 });
 
-const tiro = Tiro_Bangla({
-  subsets: ['bengali', 'latin'],
-  weight: '400',
-  variable: '--font-tiro',
+const baloo = Baloo_Da_2({
+  subsets: ['bengali'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-baloo',
   display: 'swap',
 });
 
@@ -24,7 +24,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="bn" className={`${hind.variable} ${tiro.variable}`}>
+    <html lang="bn" className={`${noto.variable} ${baloo.variable}`}>
       <body className="font-sans">
         <AuthProvider>
           {children}

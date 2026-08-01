@@ -32,8 +32,8 @@ module.exports = {
         },
       },
       fontFamily: {
-        sans: ['var(--font-hind)', 'system-ui', 'sans-serif'],
-        display: ['var(--font-tiro)', 'serif'],
+        sans: ['var(--font-noto)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-baloo)', 'sans-serif'],
       },
       boxShadow: {
         soft: '0 1px 2px rgba(11,46,32,0.05), 0 10px 30px -14px rgba(11,46,32,0.16)',
